@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Photobooth</title>
+<style>
+:root{--bg:#fff7f0;--fg:#2b2230;--card:#fff;--accent:#ff5d8f;--muted:#8a7f92;--line:#eadfe6;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#17121c;--fg:#f4ecf7;--card:#241c2c;--muted:#a698b0;--line:#382c43;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#17121c;--fg:#f4ecf7;--card:#241c2c;--muted:#a698b0;--line:#382c43;color-scheme:dark}
+*{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Segoe UI","Noto Sans Thai",sans-serif;min-height:100vh}
+main{max-width:980px;margin:0 auto;padding:20px 16px 40px;display:grid;gap:20px;grid-template-columns:1fr}
+@media(min-width:820px){main{grid-template-columns:1.3fr 1fr;align-items:start}}
+h1{grid-column:1/-1;margin:0;font-size:1.7rem;text-align:center}
+h1 span{color:var(--accent)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px}
+.stage{position:relative;aspect-ratio:4/3;margin:0 auto;background:#000;border-radius:12px;overflow:hidden}
+video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+#count{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:7rem;font-weight:800;color:#fff;text-shadow:0 4px 20px #0008;pointer-events:none}
+#flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .35s}
+#msg{position:absolute;inset:0;display:none;align-items:center;justify-content:center;text-align:center;padding:20px;color:#fff;background:#000c;font-size:.95rem}
+.row{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;align-items:center}
+label{font-size:.85rem;color:var(--muted)}
+select,button{font:inherit;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--fg);padding:9px 16px;cursor:pointer}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700;padding:11px 26px}
+button:disabled{opacity:.5;cursor:default}
+.sw{width:30px;height:30px;padding:0;border-radius:50%;border:3px solid var(--line)}
+.sw.on{border-color:var(--accent)}
+#dots{display:flex;gap:6px;margin-left:auto}
+#dots i{width:12px;height:12px;border-radius:50%;background:var(--line)}
+#dots i.on{background:var(--accent)}
+#strip{width:100%;max-width:240px;display:block;margin:0 auto;border-radius:6px;box-shadow:0 6px 24px #0003;background:#fff}
+.hint{color:var(--muted);text-align:center;font-size:.9rem;margin:6px 0 0}
+.pills{display:flex;gap:6px;flex-wrap:wrap}
+.pills button{padding:7px 12px;font-size:.85rem}
+.pills button.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+</style>
+</head>
+<body>
+<main>
+<h1>📸 <span>Photobooth</span></h1>
+<section class="card">
+  <div class="stage" id="stage">
+    <video id="v" autoplay playsinline muted></video>
+    <div id="count"></div><div id="flash"></div>
+    <div id="msg"></div>
+  </div>
+  <div class="row" style="justify-content:center"><label>สัดส่วนภาพ</label><div class="pills" id="ratios"></div></div>
+  <div class="row">
+    <button class="primary" id="go">เริ่มถ่าย (4 รูป)</button>
+    <label>ฟิลเตอร์ <select id="filter">
+      <option value="none">ปกติ</option>
+      <option value="grayscale(1) contrast(1.1)">ขาวดำ</option>
+      <option value="sepia(.8)">ซีเปีย</option>
+      <option value="saturate(1.5) contrast(1.1) brightness(1.05)">สดใส</option>
+      <option value="hue-rotate(-20deg) saturate(1.3) sepia(.2)">วินเทจอุ่น</option>
+      <option value="sepia(.35) saturate(1.45) contrast(.9) brightness(1.1) hue-rotate(-10deg)">โทน 70s วินเทจ</option>
+      <option value="grayscale(1) sepia(.6) contrast(1.2) brightness(1.05)">ซีเปียโฟโต้บูธคลาสสิก</option>
+    </select></label>
+    <div id="dots"><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="row"><label for="zm">ซูมกล้อง</label><input type="range" id="zm" min="1" max="3" step="0.1" value="1" style="flex:1;min-width:120px;accent-color:var(--accent)"><span id="zv" style="font-size:.85rem;color:var(--muted);min-width:2.8em;text-align:right">1.0×</span></div>
+  <div class="row"><label>สีเฟรม</label><span id="sws"></span>
+    <label style="margin-left:auto"><input type="file" id="up" accept="image/*" multiple hidden><button id="upb" type="button">อัปโหลดรูปแทน</button></label>
+  </div>
+  <div class="row"><label>เลย์เอาต์ <select id="lay">
+      <option value="s4">สตริป 4 รูป (แนวตั้ง)</option>
+      <option value="s3">สตริป 3 รูป</option>
+      <option value="s2">สตริป 2 รูป</option>
+      <option value="g22">กริด 2×2 (4 รูป)</option>
+      <option value="g23">กริด 2×3 (6 รูป)</option>
+      <option value="w4">แนวนอน 4 รูป</option>
+    </select></label></div>
+  <div class="row"><label for="cap">ข้อความบนสตริป</label><input type="text" id="cap" maxlength="30" placeholder="PHOTOBOOTH" style="flex:1;min-width:140px;font:inherit;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--fg);padding:9px 16px"></div>
+  <div class="row"><label>ลายกรอบ <select id="fr">
+      <option value="plain">เรียบ</option>
+      <option value="double">เส้นคู่</option>
+      <option value="round">มุมโค้งมน</option>
+      <option value="film">ฟิล์มหนัง (พื้นดำ)</option>
+      <option value="dots">ลายจุด</option>
+      <option value="stripes">ลายทาง</option>
+      <option value="hearts">หัวใจ</option>
+      <option value="classic">ขอบดำบูธเก่า</option>
+    </select></label></div>
+</section>
+<section class="card">
+  <canvas id="strip" width="480" height="1500"></canvas>
+  <div class="row" style="justify-content:center">
+    <button class="primary" id="dl" disabled>ดาวน์โหลด</button>
+    <button id="reset">ล้างใหม่</button>
+  </div>
+  <p class="hint" id="hint">กดเริ่มถ่ายเพื่อสร้างสตริปรูปของคุณ</p>
+</section>
+</main>
+<script>
+(function(){
+var v=document.getElementById('v'),cnt=document.getElementById('count'),fl=document.getElementById('flash'),
+msg=document.getElementById('msg'),go=document.getElementById('go'),fs=document.getElementById('filter'),
+cv=document.getElementById('strip'),ctx=cv.getContext('2d'),dl=document.getElementById('dl'),
+dots=document.querySelectorAll('#dots i'),hint=document.getElementById('hint'),stage=document.getElementById('stage');
+var shots=[],frame='#ff8fb1',busy=false,colors=['#ff8fb1','#ffffff','#1b1b1b','#7ec8e3','#ffd166'];
+var RATIOS=[['4:3',4,3],['3:4',3,4],['3:2',3,2],['2:3',2,3],['16:9',16,9],['9:16',9,16],['1:1',1,1]],ratio=RATIOS[0];
+var sws=document.getElementById('sws'),rbox=document.getElementById('ratios');
+colors.forEach(function(c,i){var b=document.createElement('button');b.className='sw'+(i===0?' on':'');b.style.background=c;b.setAttribute('aria-label','สี '+c);
+ b.onclick=function(){frame=c;[].forEach.call(sws.children,function(x){x.classList.remove('on')});b.classList.add('on');draw()};sws.appendChild(b)});
+function R(){return ratio[1]/ratio[2]}
+function applyStage(){var r=R();stage.style.aspectRatio=ratio[1]+'/'+ratio[2];stage.style.width='min(100%,'+(68*r).toFixed(1)+'vh)'}
+RATIOS.forEach(function(q,i){var b=document.createElement('button');b.type='button';b.textContent=q[0];if(i===0)b.className='on';
+ b.onclick=function(){if(busy)return;ratio=q;[].forEach.call(rbox.children,function(x){x.classList.remove('on')});b.classList.add('on');
+  applyStage();shots=[];hint.textContent='กดเริ่มถ่ายเพื่อสร้างสตริปรูปของคุณ';draw()};rbox.appendChild(b)});
+function showMsg(t){msg.textContent=t;msg.style.display='flex'}
+function startCam(){
+ try{
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){showMsg('เบราว์เซอร์นี้ใช้กล้องไม่ได้ ลองอัปโหลดรูปแทน');go.disabled=true;return}
+  navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:1920},height:{ideal:1080}},audio:false})
+   .then(function(s){v.srcObject=s;msg.style.display='none'})
+   .catch(function(){showMsg('เปิดกล้องไม่ได้ กรุณาอนุญาตการใช้กล้อง หรือกด "อัปโหลดรูปแทน"');go.disabled=true});
+ }catch(e){showMsg('เปิดกล้องไม่ได้ ลองอัปโหลดรูปแทน');go.disabled=true}
+}
+function sleep(ms){return new Promise(function(r){setTimeout(r,ms)})}
+var hasF=(function(){try{return typeof document.createElement('canvas').getContext('2d').filter==='string'}catch(e){return false}})();
+function pix(c){
+ var i0=fs.selectedIndex;if(hasF||i0===0)return c;
+ var x=c.getContext('2d'),d=x.getImageData(0,0,c.width,c.height),a=d.data;
+ for(var i=0;i<a.length;i+=4){var r=a[i],g=a[i+1],b=a[i+2],y=.299*r+.587*g+.114*b;
+  if(i0===1){y=(y-128)*1.1+128;r=g=b=y}
+  else if(i0===2){var sr=.393*r+.769*g+.189*b,sg=.349*r+.686*g+.168*b,sb=.272*r+.534*g+.131*b;r=r+(sr-r)*.8;g=g+(sg-g)*.8;b=b+(sb-b)*.8}
+  else if(i0===3){r=(y+(r-y)*1.5-128)*1.1+128;g=(y+(g-y)*1.5-128)*1.1+128;b=(y+(b-y)*1.5-128)*1.1+128;r*=1.05;g*=1.05;b*=1.05}
+  else if(i0===5){r=y+(r-y)*1.35;g=y+(g-y)*1.35;b=y+(b-y)*1.35;
+   r=(r-128)*.9+128+16;g=(g-128)*.9+128+6;b=(b-128)*.9+128-16}
+  else if(i0===6){y=(y-128)*1.2+128+6;r=y*1.07+10;g=y*.95+4;b=y*.78-4}
+  else{r=y+(r-y)*1.3;g=y+(g-y)*1.3;b=y+(b-y)*1.3;r=r*1.06+8;b=b*.9}
+  a[i]=r;a[i+1]=g;a[i+2]=b}
+ x.putImageData(d,0,0);return c;
+}
+function outCanvas(){
+ var r=R(),c=document.createElement('canvas'),L0=960;
+ if(r>=1){c.width=L0;c.height=Math.round(L0/r)}else{c.height=L0;c.width=Math.round(L0*r)}
+ return c;
+}
+function crop(sw0,sh0,z){var r=R(),sw=sw0,sh=sw0/r;if(sh>sh0){sh=sh0;sw=sh0*r}return[sw/z,sh/z]}
+function snap(){
+ var c=outCanvas(),x=c.getContext('2d'),vw=v.videoWidth||640,vh=v.videoHeight||480,
+  s=crop(vw,vh,+zm.value),sw=s[0],sh=s[1];
+ if(hasF)x.filter=fs.value==='none'?'none':fs.value;x.translate(c.width,0);x.scale(-1,1);
+ x.drawImage(v,(vw-sw)/2,(vh-sh)/2,sw,sh,0,0,c.width,c.height);return pix(c);
+}
+function fromImg(img){
+ var c=outCanvas(),x=c.getContext('2d'),s=crop(img.width,img.height,1),sw=s[0],sh=s[1];
+ if(hasF)x.filter=fs.value==='none'?'none':fs.value;
+ x.drawImage(img,(img.width-sw)/2,(img.height-sh)/2,sw,sh,0,0,c.width,c.height);return pix(c);
+}
+function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath()}
+function heart(x,y,s){ctx.beginPath();ctx.moveTo(x,y+s*.4);ctx.bezierCurveTo(x,y-s*.3,x-s,y-s*.3,x-s,y+s*.4);ctx.bezierCurveTo(x-s,y+s,x,y+s*1.1,x,y+s*1.5);ctx.bezierCurveTo(x,y+s*1.1,x+s,y+s,x+s,y+s*.4);ctx.bezierCurveTo(x+s,y-s*.3,x,y-s*.3,x,y+s*.4);ctx.fill()}
+var lay=document.getElementById('lay'),zm=document.getElementById('zm'),zv=document.getElementById('zv');
+// w,h = ขนาดช่องรูปที่สัดส่วน 4:3 ใช้เป็นพื้นที่อ้างอิง แล้วปรับตามสัดส่วนที่เลือก
+var LAY={s4:{n:4,c:1,w:420,h:315,v:'240px'},s3:{n:3,c:1,w:420,h:315,v:'240px'},s2:{n:2,c:1,w:420,h:315,v:'240px'},
+ g22:{n:4,c:2,w:320,h:240,v:'400px'},g23:{n:6,c:2,w:320,h:240,v:'400px'},w4:{n:4,c:4,w:240,h:180,v:'100%'}};
+function L(){
+ var b=LAY[lay.value],r=R(),A=b.w*b.h,w=Math.round(Math.sqrt(A*r)),h=Math.round(w/r);
+ return{n:b.n,c:b.c,v:b.v,w:w,h:h};
+}
+function buildDots(){var d=document.getElementById('dots');d.innerHTML=new Array(L().n+1).join('<i></i>');dots=d.querySelectorAll('i')}
+function updGo(){go.textContent='เริ่มถ่าย ('+L().n+' รูป)'}
+function draw(){
+ var l=L(),P=30,gap=20,B=90,pw=l.w,ph=l.h,cols=l.c,rows=Math.ceil(l.n/cols);
+ var W=P*2+cols*pw+(cols-1)*gap,H=P+rows*ph+(rows-1)*gap+B;
+ if(cv.width!==W)cv.width=W;if(cv.height!==H)cv.height=H;cv.style.maxWidth=l.v;
+ var st=document.getElementById('fr').value;
+ var film=st==='film',dark=film||frame==='#1b1b1b',ink=dark?'#fff':'#2b2230',i,x,y;
+ ctx.fillStyle=film?'#1b1b1b':frame;ctx.fillRect(0,0,W,H);
+ if(st==='dots'){ctx.fillStyle=dark?'#ffffff22':'#ffffff77';
+  for(y=12;y<H;y+=24)for(x=(y/24%2?12:24);x<W;x+=24){ctx.beginPath();ctx.arc(x,y,4,0,7);ctx.fill()}}
+ if(st==='stripes'){ctx.fillStyle=dark?'#ffffff14':'#ffffff55';for(x=0;x<W;x+=40)ctx.fillRect(x,0,20,H)}
+ for(i=0;i<l.n;i++){x=P+(i%cols)*(pw+gap);y=P+Math.floor(i/cols)*(ph+gap);
+  ctx.save();if(st==='round'){rr(x,y,pw,ph,22);ctx.clip()}
+  ctx.fillStyle=dark?'#333':'#ffffff55';ctx.fillRect(x,y,pw,ph);
+  if(shots[i])ctx.drawImage(shots[i],x,y,pw,ph);
+  ctx.restore();
+  if(st==='classic'){ctx.strokeStyle='#1b1b1b';ctx.lineWidth=8;ctx.strokeRect(x,y,pw,ph)}
+ }
+ if(st==='double'){ctx.strokeStyle=ink;ctx.lineWidth=2;rr(7,7,W-14,H-14,6);ctx.stroke();ctx.lineWidth=1;rr(14,14,W-28,H-28,3);ctx.stroke()}
+ if(film){ctx.fillStyle='#f4ecd8';for(y=10;y<H;y+=36){rr(9,y,12,18,3);ctx.fill();rr(W-21,y,12,18,3);ctx.fill()}}
+ if(st==='hearts'){ctx.fillStyle=dark?'#ffffffaa':'#ff5d8fcc';
+  for(i=1;i<rows;i++){y=P+i*(ph+gap)-gap/2-5;[.2,.5,.8].forEach(function(f){heart(P+(W-P*2)*f,y,5)})}
+  for(i=1;i<cols;i++){x=P+i*(pw+gap)-gap/2;for(var r=0;r<rows;r++)heart(x,P+r*(ph+gap)+ph/2-5,5)}
+  [[14,14],[W-14,14],[14,H-34],[W-14,H-34]].forEach(function(p){heart(p[0],p[1],7)})}
+ ctx.fillStyle=ink;ctx.textAlign='center';
+ var txt=document.getElementById('cap').value.trim()||'PHOTOBOOTH',fz=26;
+ ctx.font='700 '+fz+'px system-ui,"Noto Sans Thai",sans-serif';
+ while(fz>12&&ctx.measureText(txt).width>W-P*2){fz--;ctx.font='700 '+fz+'px system-ui,"Noto Sans Thai",sans-serif'}
+ ctx.fillText(txt,W/2,H-36);
+ dots.forEach(function(d,i){d.classList.toggle('on',i<shots.length)});
+ dl.disabled=shots.length<l.n;
+}
+async function run(){
+ if(busy)return;busy=true;go.disabled=true;lay.disabled=true;var N=L().n;shots=[];draw();hint.textContent='เตรียมโพสได้เลย!';
+ for(var i=0;i<N;i++){
+  for(var n=3;n>0;n--){cnt.textContent=n;await sleep(900)}
+  cnt.textContent='';fl.style.opacity=1;shots.push(snap());draw();await sleep(120);fl.style.opacity=0;await sleep(700);
+ }
+ hint.textContent='เสร็จแล้ว! กดดาวน์โหลดได้เลย';busy=false;go.disabled=false;lay.disabled=false;go.textContent='ถ่ายใหม่';
+}
+go.onclick=run;zm.oninput=function(){v.style.transform='scaleX(-1) scale('+zm.value+')';zv.textContent=(+zm.value).toFixed(1)+'×'};document.getElementById('fr').onchange=draw;document.getElementById('cap').oninput=function(){draw()};lay.onchange=function(){shots=[];buildDots();updGo();hint.textContent='กดเริ่มถ่ายเพื่อสร้างรูปของคุณ';draw()};
+fs.onchange=function(){v.style.filter=fs.value==='none'?'none':fs.value};
+document.getElementById('reset').onclick=function(){shots=[];draw();hint.textContent='กดเริ่มถ่ายเพื่อสร้างสตริปรูปของคุณ';updGo()};
+dl.onclick=function(){var a=document.createElement('a');a.download='photobooth.png';a.href=cv.toDataURL('image/png');a.click()};
+document.getElementById('upb').onclick=function(){document.getElementById('up').click()};
+document.getElementById('up').onchange=function(e){
+ var fl2=[].slice.call(e.target.files,0,L().n);shots=[];
+ fl2.reduce(function(p,f){return p.then(function(){return new Promise(function(res){var im=new Image();im.onload=function(){shots.push(fromImg(im));res()};im.src=URL.createObjectURL(f)})})},Promise.resolve())
+ .then(function(){draw();e.target.value='';hint.textContent=shots.length<L().n?'ต้องใช้ '+L().n+' รูปเพื่อดาวน์โหลด':'เสร็จแล้ว!'});
+};
+applyStage();buildDots();draw();startCam();
+})();
+</script>
+</body>
+</html>
