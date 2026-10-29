@@ -72,6 +72,13 @@ button:disabled{opacity:.5;cursor:default}
       <option value="g23">กริด 2×3 (6 รูป)</option>
       <option value="w4">แนวนอน 4 รูป</option>
     </select></label></div>
+  <div class="row"><label>จับเวลาก่อนถ่ายแต่ละรูป <select id="tm">
+      <option value="2">2 วินาที</option>
+      <option value="3" selected>3 วินาที</option>
+      <option value="5">5 วินาที</option>
+      <option value="7">7 วินาที</option>
+      <option value="10">10 วินาที</option>
+    </select></label></div>
   <div class="row"><label for="cap">ข้อความบนสตริป</label><input type="text" id="cap" maxlength="30" placeholder="PHOTOBOOTH" style="flex:1;min-width:140px;font:inherit;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--fg);padding:9px 16px"></div>
   <div class="row"><label>ลายกรอบ <select id="fr">
       <option value="plain">เรียบ</option>
@@ -195,12 +202,12 @@ function draw(){
  dl.disabled=shots.length<l.n;
 }
 async function run(){
- if(busy)return;busy=true;go.disabled=true;lay.disabled=true;var N=L().n;shots=[];draw();hint.textContent='เตรียมโพสได้เลย!';
+ if(busy)return;busy=true;go.disabled=true;lay.disabled=true;document.getElementById('tm').disabled=true;var N=L().n;shots=[];draw();hint.textContent='เตรียมโพสได้เลย!';
  for(var i=0;i<N;i++){
-  for(var n=3;n>0;n--){cnt.textContent=n;await sleep(900)}
+  for(var n=+document.getElementById('tm').value;n>0;n--){cnt.textContent=n;await sleep(900)}
   cnt.textContent='';fl.style.opacity=1;shots.push(snap());draw();await sleep(120);fl.style.opacity=0;await sleep(700);
  }
- hint.textContent='เสร็จแล้ว! กดดาวน์โหลดได้เลย';busy=false;go.disabled=false;lay.disabled=false;go.textContent='ถ่ายใหม่';
+ hint.textContent='เสร็จแล้ว! กดดาวน์โหลดได้เลย';busy=false;go.disabled=false;lay.disabled=false;document.getElementById('tm').disabled=false;go.textContent='ถ่ายใหม่';
 }
 go.onclick=run;zm.oninput=function(){v.style.transform='scaleX(-1) scale('+zm.value+')';zv.textContent=(+zm.value).toFixed(1)+'×'};document.getElementById('fr').onchange=draw;document.getElementById('cap').oninput=function(){draw()};lay.onchange=function(){shots=[];buildDots();updGo();hint.textContent='กดเริ่มถ่ายเพื่อสร้างรูปของคุณ';draw()};
 fs.onchange=function(){v.style.filter=fs.value==='none'?'none':fs.value};
